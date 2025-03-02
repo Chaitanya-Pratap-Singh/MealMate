@@ -2,7 +2,14 @@
 
 "use client";
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
+import { useRouter } from "next/navigation";
+
 export function Hero() {
+	const router = useRouter();
+
+	const handleClick = () => {
+		router.push("/dashboard");
+	};
 	const words = [
 		{
 			text: "Cook",
@@ -28,7 +35,9 @@ export function Hero() {
 			</p>
 			<TypewriterEffectSmooth words={words} />
 			<div className="flex flex-col md:flex-row space-y-4 md:space-y-0 space-x-0 md:space-x-4">
-				<button className="w-40 h-10 rounded-xl bg-[#EE5F4C] border dark:border-white border-transparent text-[#FBF8F6] text-sm cursor-pointer">
+				<button
+					onClick={handleClick}
+					className="w-40 h-10 rounded-xl bg-[#EE5F4C] border dark:border-white border-transparent text-[#FBF8F6] text-sm cursor-pointer">
 					Start Cooking
 				</button>
 			</div>
