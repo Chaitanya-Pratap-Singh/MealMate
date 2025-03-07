@@ -29,7 +29,7 @@ export function Hero() {
 		},
 	];
 	return (
-		<div className="flex flex-col items-center justify-center h-[40rem]  ">
+		<div className="flex flex-col items-center justify-center pt-[10rem] pb-[5rem]">
 			<p className="text-neutral-600 dark:text-[#FBF8F6] text-xs sm:text-base  ">
 				Your smart companion for delicious meal ideas!
 			</p>
