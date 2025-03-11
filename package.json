@@ -11,6 +11,7 @@
   "dependencies": {
     "@tabler/icons-react": "^3.31.0",
     "clsx": "^2.1.1",
+    "mongoose": "^8.12.1",
     "motion": "^12.4.10",
     "next": "15.2.0",
     "react": "^19.0.0",
