@@ -24,7 +24,9 @@ setInterval(() => {
 export async function POST(req: NextRequest) {
 	try {
 		const data = await req.json();
-		const sessionId = cookies().get("mealmate_session")?.value || uuidv4();
+		const cookieStore = cookies();
+		const sessionCookie = cookieStore.get("mealmate_session");
+		const sessionId = sessionCookie?.value || uuidv4();
 
 		// Store the data with expiration time
 		sessionStore[sessionId] = {
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
 		};
 
 		// Set session cookie if it doesn't exist
-		cookies().set("mealmate_session", sessionId, {
+		cookieStore.set("mealmate_session", sessionId, {
 			httpOnly: true,
 			maxAge: SESSION_EXPIRY / 1000,
 			path: "/",
@@ -52,7 +54,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
 	try {
-		const sessionId = cookies().get("mealmate_session")?.value;
+		const cookieStore = cookies();
+		const sessionCookie = cookieStore.get("mealmate_session");
+		const sessionId = sessionCookie?.value;
 
 		if (!sessionId || !sessionStore[sessionId]) {
 			return NextResponse.json(
