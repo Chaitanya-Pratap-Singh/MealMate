@@ -191,7 +191,7 @@ export default function GeminiPage() {
 										{results.recipe.instructions &&
 											results.recipe.instructions.map((instruction, index) => (
 												<li key={index} className="flex">
-													<span className="inline-block bg-[#EE5F4C] text-white rounded-full w-6 h-6 text-sm flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">
+													<span className="inline-block bg-[#EE5F4C] text-white rounded-full w-6 h-6 text-sm items-center justify-center mr-3 flex-shrink-0 mt-0.5">
 														{index + 1}
 													</span>
 													<span className="text-neutral-700 dark:text-neutral-300">
