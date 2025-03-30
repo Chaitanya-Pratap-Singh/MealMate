@@ -1,34 +1,40 @@
 {
-  "name": "minor-project",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@google/generative-ai": "^0.24.0",
-    "@tabler/icons-react": "^3.31.0",
-    "clsx": "^2.1.1",
-    "dotenv": "^16.4.7",
-    "marked": "^15.0.7",
-    "mongoose": "^8.12.1",
-    "motion": "^12.4.10",
-    "next": "15.2.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-dropzone": "^14.3.8",
-    "react-markdown": "^10.1.0",
-    "tailwind-merge": "^3.0.2"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+	"name": "minor-project",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint"
+	},
+	"dependencies": {
+		"@google/generative-ai": "^0.24.0",
+		"@tabler/icons-react": "^3.31.0",
+		"axios": "^1.6.7",
+		"cloudinary": "^1.41.3",
+		"clsx": "^2.1.1",
+		"dotenv": "^16.4.7",
+		"marked": "^15.0.7",
+		"mongoose": "^8.12.1",
+		"motion": "^12.4.10",
+		"multer": "^1.4.5-lts.2",
+		"multer-storage-cloudinary": "^4.0.0",
+		"next": "15.2.0",
+		"next-cloudinary": "^6.16.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-dropzone": "^14.3.8",
+		"react-markdown": "^10.1.0",
+		"sonner": "^2.0.2",
+		"tailwind-merge": "^3.0.2"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"tailwindcss": "^4",
+		"typescript": "^5"
+	}
 }

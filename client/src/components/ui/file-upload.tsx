@@ -29,8 +29,10 @@ const secondaryVariant = {
 
 export const FileUpload = ({
 	onChange,
+	className,
 }: {
 	onChange?: (files: File[]) => void;
+	className?: string;
 }) => {
 	const [files, setFiles] = useState<File[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +56,7 @@ export const FileUpload = ({
 	});
 
 	return (
-		<div className="w-full" {...getRootProps()}>
+		<div className={cn("w-full", className)} {...getRootProps()}>
 			<motion.div
 				onClick={handleClick}
 				whileHover="animate"

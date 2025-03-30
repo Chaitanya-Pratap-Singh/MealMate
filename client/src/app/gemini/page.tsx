@@ -2,94 +2,248 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { DetectionResult, RecipeData, UploadResponse } from "@/lib/api";
+import Image from "next/image";
+import {
+	IconArrowLeft,
+	IconChefHat,
+	IconListCheck,
+	IconSearch,
+} from "@tabler/icons-react";
 
-export default function RecipeGenerator() {
-	const [ingredients, setIngredients] = useState<string>("");
-	const [recipe, setRecipe] = useState<string>("");
-	const [loading, setLoading] = useState(false);
-	const [displayedRecipe, setDisplayedRecipe] = useState<string>("");
+export default function GeminiPage() {
+	const searchParams = useSearchParams();
+	const router = useRouter();
+	const [results, setResults] = useState<UploadResponse | null>(null);
+	const [activeTab, setActiveTab] = useState<"detections" | "recipe">("recipe");
 
-	const fetchRecipe = async () => {
-		setLoading(true);
-		setRecipe("");
-		setDisplayedRecipe("");
+	useEffect(() => {
+		const resultsParam = searchParams.get("results");
+		if (resultsParam) {
+			try {
+				const parsedResults = JSON.parse(decodeURIComponent(resultsParam));
+				console.log("Parsed results from URL:", parsedResults);
 
-		try {
-			const response = await fetch("/api/gemini", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ ingredients: ingredients.split(",") }),
-			});
+				// Ensure the results have the necessary properties initialized
+				const sanitizedResults = {
+					...parsedResults,
+					detections: parsedResults.detections || [],
+					recipe: parsedResults.recipe || null,
+					count: parsedResults.count || parsedResults.detections?.length || 0,
+				};
 
-			const data = await response.json();
-			if (data.recipeMarkdown) {
-				setRecipe(data.recipeMarkdown);
+				setResults(sanitizedResults);
+
+				// If there's no recipe, default to detections tab
+				if (!sanitizedResults.recipe) {
+					console.log("No recipe in results, switching to detections tab");
+					setActiveTab("detections");
+				}
+			} catch (error) {
+				console.error("Error parsing results:", error);
 			}
-		} catch (error) {
-			console.error("Error fetching recipe:", error);
-			setRecipe("⚠️ Failed to generate a recipe.");
 		}
+	}, [searchParams]);
 
-		setLoading(false);
+	const handleBackClick = () => {
+		router.push("/dashboard");
 	};
 
-	// Typing effect for smooth text reveal
-	useEffect(() => {
-		if (!loading && recipe) {
-			let i = 0;
-			const interval = setInterval(() => {
-				setDisplayedRecipe((prev) => prev + recipe[i]);
-				i++;
-				if (i === recipe.length) clearInterval(interval);
-			}, 20);
-			return () => clearInterval(interval);
-		}
-	}, [recipe, loading]);
+	if (!results) {
+		return (
+			<div className="min-h-screen flex items-center justify-center">
+				<p className="text-neutral-600 dark:text-white">Loading results...</p>
+			</div>
+		);
+	}
+
+	console.log("Current results state:", results);
+	console.log("Active tab:", activeTab);
+	console.log("Recipe data:", results.recipe);
+	console.log("Detections data:", results.detections);
 
 	return (
-		<div className="flex flex-col items-center justify-center pt-20 pb-10">
-			<p className="text-neutral-600 dark:text-[#FBF8F6] text-xs sm:text-base mb-2">
-				Your AI-powered recipe generator! 🍽️
-			</p>
-
-	
-
-			{/* Input Field */}
-			<input
-				type="text"
-				placeholder="Enter ingredients (e.g., chicken, onion)..."
-				value={ingredients}
-				onChange={(e) => setIngredients(e.target.value)}
-				className="mt-6 w-[90%] md:w-[500px] px-4 py-2 text-sm rounded-lg border border-neutral-300 dark:border-white bg-white dark:bg-[#1E1E1E] text-black dark:text-[#FBF8F6] focus:ring-2 focus:ring-[#F9C2C2] outline-none"
-			/>
-
-			{/* Generate Button */}
+		<div className="container mx-auto py-8 px-4 max-w-5xl">
 			<button
-				onClick={fetchRecipe}
-				disabled={loading}
-				className="mt-4 px-6 py-2 bg-[#EE5F4C] text-white text-sm rounded-xl border dark:border-white border-transparent hover:bg-[#F97A60] transition disabled:opacity-50">
-				{loading ? "Generating..." : "Get Recipe"}
+				onClick={handleBackClick}
+				className="mb-6 flex items-center text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-white transition-colors">
+				<IconArrowLeft className="w-5 h-5 mr-2" />
+				Back to Upload
 			</button>
 
-			{/* Loader */}
-			{loading && (
-				<p className="mt-4 text-gray-600 dark:text-[#FBF8F6] animate-pulse">
-					Thinking... 🤖
-				</p>
-			)}
+			<div className="grid md:grid-cols-2 gap-8">
+				{/* Image Column */}
+				<div>
+					{results.image_url && (
+						<div className="rounded-lg overflow-hidden shadow-lg bg-white dark:bg-neutral-800">
+							<div className="relative aspect-video">
+								<Image
+									src={results.image_url}
+									alt="Uploaded image"
+									fill
+									className="object-cover"
+								/>
+							</div>
+							<div className="p-4">
+								<h2 className="text-lg font-medium text-neutral-800 dark:text-white mb-2">
+									{results.count || 0} {results.count === 1 ? "item" : "items"}{" "}
+									detected
+								</h2>
+								<p className="text-neutral-600 dark:text-neutral-300 text-sm">
+									{results.detections && results.detections.length > 0
+										? results.detections.map((item) => item.label).join(", ")
+										: "No items detected"}
+								</p>
+							</div>
+						</div>
+					)}
+				</div>
 
-			{/* Recipe Output */}
-			<div className="mt-6  w-[90%] p-4 rounded-lg bg-white dark:bg-[#1E1E1E] text-black dark:text-[#FBF8F6] border border-neutral-300 dark:border-white">
-				{displayedRecipe ? (
-					<ReactMarkdown>{displayedRecipe}</ReactMarkdown>
-				) : (
-					<p className="text-center text-neutral-500 dark:text-neutral-400">
-						Your recipe will appear here! 🍲
-					</p>
-				)}
+				{/* Results Column */}
+				<div>
+					{/* Tabs */}
+					<div className="flex border-b border-neutral-200 dark:border-neutral-700 mb-6">
+						<button
+							onClick={() => setActiveTab("recipe")}
+							className={`py-2 px-4 border-b-2 font-medium text-sm flex items-center ${
+								activeTab === "recipe"
+									? "border-[#EE5F4C] text-[#EE5F4C]"
+									: "border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
+							}`}
+							disabled={!results.recipe}>
+							<IconChefHat className="w-5 h-5 mr-2" />
+							Recipe
+						</button>
+						<button
+							onClick={() => setActiveTab("detections")}
+							className={`py-2 px-4 border-b-2 font-medium text-sm flex items-center ${
+								activeTab === "detections"
+									? "border-[#EE5F4C] text-[#EE5F4C]"
+									: "border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
+							}`}>
+							<IconSearch className="w-5 h-5 mr-2" />
+							Detections
+						</button>
+					</div>
+
+					{/* Tab Content */}
+					{activeTab === "recipe" && results.recipe ? (
+						<div className="bg-white dark:bg-neutral-800 rounded-lg shadow-lg p-6">
+							<h1 className="text-2xl font-bold mb-4 text-neutral-800 dark:text-white">
+								{results.recipe.title}
+							</h1>
+
+							<div className="mb-6">
+								<h2 className="text-lg font-medium mb-3 flex items-center text-neutral-800 dark:text-white">
+									<IconListCheck className="w-5 h-5 mr-2 text-[#EE5F4C]" />
+									Ingredients
+								</h2>
+								<ul className="space-y-2">
+									{results.recipe.ingredients &&
+										results.recipe.ingredients.map((ingredient, index) => (
+											<li key={index} className="flex items-start">
+												<span className="inline-block w-2 h-2 rounded-full bg-[#EE5F4C] mt-2 mr-3"></span>
+												<span className="text-neutral-700 dark:text-neutral-300">
+													{ingredient}
+												</span>
+											</li>
+										))}
+								</ul>
+							</div>
+
+							<div>
+								<h2 className="text-lg font-medium mb-3 text-neutral-800 dark:text-white">
+									Instructions
+								</h2>
+								<ol className="space-y-3">
+									{results.recipe.instructions &&
+										results.recipe.instructions.map((instruction, index) => (
+											<li key={index} className="flex">
+												<span className="inline-block bg-[#EE5F4C] text-white rounded-full w-6 h-6 text-sm flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">
+													{index + 1}
+												</span>
+												<span className="text-neutral-700 dark:text-neutral-300">
+													{instruction}
+												</span>
+											</li>
+										))}
+								</ol>
+							</div>
+
+							{results.recipe.serving_suggestions && (
+								<div className="mt-6 p-4 bg-neutral-50 dark:bg-neutral-700 rounded-lg">
+									<h3 className="font-medium mb-2 text-neutral-800 dark:text-white">
+										Serving Suggestions
+									</h3>
+									<p className="text-neutral-700 dark:text-neutral-300">
+										{results.recipe.serving_suggestions}
+									</p>
+								</div>
+							)}
+
+							{results.recipe.nutritional_notes && (
+								<div className="mt-4 p-4 bg-neutral-50 dark:bg-neutral-700 rounded-lg">
+									<h3 className="font-medium mb-2 text-neutral-800 dark:text-white">
+										Nutritional Notes
+									</h3>
+									<p className="text-neutral-700 dark:text-neutral-300">
+										{results.recipe.nutritional_notes}
+									</p>
+								</div>
+							)}
+						</div>
+					) : activeTab === "detections" ? (
+						<div className="bg-white dark:bg-neutral-800 rounded-lg shadow-lg p-6">
+							<h2 className="text-xl font-bold mb-4 text-neutral-800 dark:text-white">
+								Detected Items
+							</h2>
+
+							{results.detections && results.detections.length > 0 ? (
+								<div className="space-y-4">
+									{results.detections.map((item, index) => (
+										<div
+											key={index}
+											className="p-3 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+											<div className="flex justify-between">
+												<span className="font-medium text-neutral-800 dark:text-white capitalize">
+													{item.label}
+												</span>
+												<span className="text-[#EE5F4C] font-medium">
+													{(item.confidence * 100).toFixed(1)}%
+												</span>
+											</div>
+											<div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+												Position: [
+												{item.bbox && Array.isArray(item.bbox)
+													? item.bbox.map((b) => b.toFixed(0)).join(", ")
+													: "N/A"}
+												]
+											</div>
+										</div>
+									))}
+								</div>
+							) : (
+								<p className="text-neutral-600 dark:text-neutral-400">
+									No items were detected in this image.
+								</p>
+							)}
+
+							{!results.recipe && (
+								<div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
+									<h3 className="font-medium text-amber-800 dark:text-amber-300 mb-1">
+										No Recipe Generated
+									</h3>
+									<p className="text-amber-700 dark:text-amber-400 text-sm">
+										We couldn't generate a recipe for the detected items. Try
+										uploading an image with more food ingredients.
+									</p>
+								</div>
+							)}
+						</div>
+					) : null}
+				</div>
 			</div>
 		</div>
 	);
