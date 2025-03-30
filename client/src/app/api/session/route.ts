@@ -24,8 +24,9 @@ setInterval(() => {
 export async function POST(req: NextRequest) {
 	try {
 		const data = await req.json();
-		const cookieStore = cookies();
-		const sessionCookie = cookieStore.get("mealmate_session");
+
+		// Get the cookie from the request headers directly
+		const sessionCookie = req.cookies.get("mealmate_session");
 		const sessionId = sessionCookie?.value || uuidv4();
 
 		// Store the data with expiration time
@@ -34,15 +35,18 @@ export async function POST(req: NextRequest) {
 			expiresAt: Date.now() + SESSION_EXPIRY,
 		};
 
-		// Set session cookie if it doesn't exist
-		cookieStore.set("mealmate_session", sessionId, {
+		// Create response
+		const response = NextResponse.json({ success: true, sessionId });
+
+		// Set cookie on the response
+		response.cookies.set("mealmate_session", sessionId, {
 			httpOnly: true,
 			maxAge: SESSION_EXPIRY / 1000,
 			path: "/",
 			sameSite: "strict",
 		});
 
-		return NextResponse.json({ success: true, sessionId });
+		return response;
 	} catch (error) {
 		console.error("Session storage error:", error);
 		return NextResponse.json(
@@ -54,8 +58,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
 	try {
-		const cookieStore = cookies();
-		const sessionCookie = cookieStore.get("mealmate_session");
+		// Get the cookie from the request headers directly
+		const sessionCookie = req.cookies.get("mealmate_session");
 		const sessionId = sessionCookie?.value;
 
 		if (!sessionId || !sessionStore[sessionId]) {
@@ -68,10 +72,21 @@ export async function GET(req: NextRequest) {
 		// Update expiration time
 		sessionStore[sessionId].expiresAt = Date.now() + SESSION_EXPIRY;
 
-		return NextResponse.json({
+		// Create response
+		const response = NextResponse.json({
 			success: true,
 			data: sessionStore[sessionId].data,
 		});
+
+		// Refresh cookie
+		response.cookies.set("mealmate_session", sessionId, {
+			httpOnly: true,
+			maxAge: SESSION_EXPIRY / 1000,
+			path: "/",
+			sameSite: "strict",
+		});
+
+		return response;
 	} catch (error) {
 		console.error("Session retrieval error:", error);
 		return NextResponse.json(
