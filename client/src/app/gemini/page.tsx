@@ -12,6 +12,7 @@ import {
 	IconChefHat,
 	IconListCheck,
 	IconSearch,
+	IconPencil,
 } from "@tabler/icons-react";
 
 export default function GeminiPage() {
@@ -22,41 +23,57 @@ export default function GeminiPage() {
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
-		// Get the results from the URL search params without using useSearchParams
-		const url = new URL(window.location.href);
-		const resultsParam = url.searchParams.get("results");
+		// Get the results from the session API instead of URL params
+		const fetchSessionData = async () => {
+			try {
+				const response = await fetch("/api/session", {
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				});
 
-		if (!resultsParam) {
-			setError(
-				"No results found in URL parameters. Please upload an image first."
-			);
-			setIsLoading(false);
-			return;
-		}
+				if (!response.ok) {
+					throw new Error("Failed to retrieve session data");
+				}
 
-		try {
-			const parsedResults = JSON.parse(decodeURIComponent(resultsParam));
-			const sanitizedResults = {
-				...parsedResults,
-				detections: parsedResults.detections || [],
-				recipe: parsedResults.recipe || null,
-				count: parsedResults.count || parsedResults.detections?.length || 0,
-				image_url: parsedResults.image_url || "",
-				status: parsedResults.status || "success",
-			} as UploadResponse;
+				const sessionData = await response.json();
 
-			setResults(sanitizedResults);
+				if (!sessionData.success || !sessionData.data) {
+					setError("No results found. Please upload an image first.");
+					setIsLoading(false);
+					return;
+				}
 
-			if (!sanitizedResults.recipe) {
-				setActiveTab("detections");
+				const sanitizedResults = {
+					...sessionData.data,
+					detections: sessionData.data.detections || [],
+					recipe: sessionData.data.recipe || null,
+					count:
+						sessionData.data.count || sessionData.data.detections?.length || 0,
+					image_url: sessionData.data.image_url || "",
+					status: sessionData.data.status || "success",
+					no_food_detected: sessionData.data.no_food_detected || false,
+					manual_entry: sessionData.data.manual_entry || false,
+				} as UploadResponse;
+
+				setResults(sanitizedResults);
+
+				// If no recipe or food items not detected, show detections tab
+				if (!sanitizedResults.recipe || sanitizedResults.no_food_detected) {
+					setActiveTab("detections");
+				}
+			} catch (error) {
+				console.error("Error fetching session data:", error);
+				setError(
+					"Error retrieving results. Please try uploading the image again."
+				);
+			} finally {
+				setIsLoading(false);
 			}
-		} catch (error) {
-			setError(
-				"Error parsing results data. Please try uploading the image again."
-			);
-		} finally {
-			setIsLoading(false);
-		}
+		};
+
+		fetchSessionData();
 	}, []);
 
 	if (isLoading) {
@@ -78,7 +95,7 @@ export default function GeminiPage() {
 					<button
 						onClick={() => router.push("/dashboard")}
 						className="mt-4 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 rounded-md hover:bg-neutral-300 dark:hover:bg-neutral-600">
-						Go to Upload
+						Go to Dashboard
 					</button>
 				</div>
 			</div>
@@ -95,8 +112,18 @@ export default function GeminiPage() {
 
 	const renderDetections = () => (
 		<div className="bg-white dark:bg-neutral-800 rounded-lg shadow-lg p-6">
-			<h2 className="text-xl font-bold mb-4 text-neutral-800 dark:text-white">
-				Detected Items
+			<h2 className="text-xl font-bold mb-4 text-neutral-800 dark:text-white flex items-center">
+				{results.manual_entry ? (
+					<>
+						<IconPencil className="w-5 h-5 mr-2 text-[#EE5F4C]" />
+						Entered Ingredients
+					</>
+				) : (
+					<>
+						<IconSearch className="w-5 h-5 mr-2 text-[#EE5F4C]" />
+						Detected Items
+					</>
+				)}
 			</h2>
 
 			{results.detections && results.detections.length > 0 ? (
@@ -109,34 +136,53 @@ export default function GeminiPage() {
 								<span className="font-medium text-neutral-800 dark:text-white capitalize">
 									{item.label}
 								</span>
-								<span className="text-[#EE5F4C] font-medium">
-									{(item.confidence * 100).toFixed(1)}%
-								</span>
+								{!results.manual_entry && (
+									<span className="text-[#EE5F4C] font-medium">
+										{(item.confidence * 100).toFixed(1)}%
+									</span>
+								)}
 							</div>
-							<div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-								Position: [
-								{item.bbox && Array.isArray(item.bbox)
-									? item.bbox.map((b) => b.toFixed(0)).join(", ")
-									: "N/A"}
-								]
-							</div>
+							{!results.manual_entry && (
+								<div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+									Position: [
+									{item.bbox && Array.isArray(item.bbox)
+										? item.bbox.map((b) => b.toFixed(0)).join(", ")
+										: "N/A"}
+									]
+								</div>
+							)}
 						</div>
 					))}
 				</div>
 			) : (
 				<p className="text-neutral-600 dark:text-neutral-400">
-					No items were detected in this image.
+					{results.manual_entry
+						? "No ingredients were entered."
+						: "No items were detected in this image."}
 				</p>
 			)}
 
-			{!results.recipe && (
+			{!results.recipe && !results.no_food_detected && (
 				<div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
 					<h3 className="font-medium text-amber-800 dark:text-amber-300 mb-1">
 						No Recipe Generated
 					</h3>
 					<p className="text-amber-700 dark:text-amber-400 text-sm">
-						We couldn't generate a recipe for the detected items. Try uploading
-						an image with more food ingredients.
+						{results.manual_entry
+							? "We couldn't generate a recipe for the entered ingredients. Try adding more ingredients."
+							: "We couldn't generate a recipe for the detected items. Try uploading an image with more food ingredients."}
+					</p>
+				</div>
+			)}
+
+			{results.no_food_detected && (
+				<div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
+					<h3 className="font-medium text-amber-800 dark:text-amber-300 mb-1">
+						No Food Items Detected
+					</h3>
+					<p className="text-amber-700 dark:text-amber-400 text-sm">
+						We couldn't identify any food items in this image. Please try
+						uploading an image with visible food ingredients.
 					</p>
 				</div>
 			)}
@@ -173,18 +219,16 @@ export default function GeminiPage() {
 					<h2 className="text-lg font-medium mb-3 text-neutral-800 dark:text-white">
 						Instructions
 					</h2>
-					<ol className="space-y-3">
+					<ul className="space-y-3">
 						{results.recipe.instructions?.map((instruction, index) => (
-							<li key={index} className="flex">
-								<span className="inline-block bg-[#EE5F4C] text-white rounded-full w-6 h-6 text-sm items-center justify-center mr-3 flex-shrink-0 mt-0.5">
-									{index + 1}
-								</span>
+							<li key={index} className="flex items-start">
+								<span className="inline-block w-2 h-2 rounded-full bg-[#EE5F4C] mt-2 mr-3"></span>
 								<span className="text-neutral-700 dark:text-neutral-300">
 									{instruction}
 								</span>
 							</li>
 						))}
-					</ol>
+					</ul>
 				</div>
 
 				{results.recipe.serving_suggestions && (
@@ -219,13 +263,18 @@ export default function GeminiPage() {
 					onClick={() => router.push("/dashboard")}
 					className="mb-6 flex items-center text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-white transition-colors">
 					<IconArrowLeft className="w-5 h-5 mr-2" />
-					Back to Upload
+					Back to Dashboard
 				</button>
 
-				<div className="grid md:grid-cols-2 gap-8">
-					{/* Image Column */}
+				<div
+					className={`grid ${
+						!results.image_url && !results.manual_entry
+							? "md:grid-cols-1"
+							: "md:grid-cols-2"
+					} gap-8`}>
+					{/* Image/Ingredients Column */}
 					<div>
-						{results.image_url && (
+						{results.image_url && !results.manual_entry ? (
 							<div className="rounded-lg overflow-hidden shadow-lg bg-white dark:bg-neutral-800">
 								<div className="relative aspect-video">
 									<Image
@@ -247,7 +296,43 @@ export default function GeminiPage() {
 									</p>
 								</div>
 							</div>
-						)}
+						) : results.manual_entry ? (
+							<div className="rounded-lg overflow-hidden shadow-lg bg-white dark:bg-neutral-800 p-6">
+								<div className="flex items-center mb-4">
+									<IconPencil className="w-5 h-5 mr-2 text-[#EE5F4C]" />
+									<h2 className="text-xl font-bold text-neutral-800 dark:text-white">
+										Entered Ingredients
+									</h2>
+								</div>
+
+								{results.detections && results.detections.length > 0 ? (
+									<ul className="space-y-2">
+										{results.detections.map((item, index) => (
+											<li
+												key={index}
+												className="flex items-center p-3 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+												<span className="inline-block w-2 h-2 rounded-full bg-[#EE5F4C] mr-3"></span>
+												<span className="font-medium text-neutral-800 dark:text-white capitalize">
+													{item.label}
+												</span>
+											</li>
+										))}
+									</ul>
+								) : (
+									<p className="text-neutral-600 dark:text-neutral-400">
+										No ingredients were entered.
+									</p>
+								)}
+
+								<div className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-700 rounded-lg">
+									<p className="text-sm text-neutral-600 dark:text-neutral-300">
+										These ingredients were used to generate your recipe. If
+										you'd like to try with different ingredients, go back to the
+										dashboard.
+									</p>
+								</div>
+							</div>
+						) : null}
 					</div>
 
 					{/* Results Column */}
@@ -261,7 +346,7 @@ export default function GeminiPage() {
 										? "border-[#EE5F4C] text-[#EE5F4C]"
 										: "border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
 								}`}
-								disabled={!results.recipe}>
+								disabled={!results.recipe || results.no_food_detected}>
 								<IconChefHat className="w-5 h-5 mr-2" />
 								Recipe
 							</button>
@@ -272,8 +357,17 @@ export default function GeminiPage() {
 										? "border-[#EE5F4C] text-[#EE5F4C]"
 										: "border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
 								}`}>
-								<IconSearch className="w-5 h-5 mr-2" />
-								Detections
+								{results.manual_entry ? (
+									<>
+										<IconPencil className="w-5 h-5 mr-2" />
+										Ingredients
+									</>
+								) : (
+									<>
+										<IconSearch className="w-5 h-5 mr-2" />
+										Detections
+									</>
+								)}
 							</button>
 						</div>
 

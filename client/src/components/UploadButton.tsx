@@ -120,16 +120,27 @@ export default function UploadButton() {
 					count:
 						response.flask_response.count || validatedDetections.length || 0,
 					recipe: recipeData,
+					no_food_detected: response.flask_response.no_food_detected || false,
 				};
 
 				console.log("Sending to Gemini page:", formattedResponse);
 
-				// Redirect to the Gemini page with the detection results
-				router.push(
-					`/gemini?results=${encodeURIComponent(
-						JSON.stringify(formattedResponse)
-					)}`
-				);
+				// Store the results in session API instead of URL parameters
+				try {
+					await fetch("/api/session", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(formattedResponse),
+					});
+
+					// Redirect to the Gemini page without URL parameters
+					router.push("/gemini");
+				} catch (error) {
+					console.error("Failed to store session data:", error);
+					toast.error("Failed to process results. Please try again.");
+				}
 			} else {
 				console.error(
 					"Error:",
@@ -153,17 +164,8 @@ export default function UploadButton() {
 	};
 
 	return (
-		<div className="fixed inset-0 bg-white dark:bg-[#0e2825] flex flex-col items-center justify-center p-4">
-			<div className="mb-8 text-center">
-				<h1 className="text-3xl font-bold mb-2 text-neutral-800 dark:text-white">
-					Upload Ingredients
-				</h1>
-				<p className="text-neutral-600 dark:text-neutral-300">
-					Upload an image of your ingredients and we'll suggest recipes for you.
-				</p>
-			</div>
-
-			<div className="w-full max-w-md mb-6">
+		<div className="w-full">
+			<div className="w-full mb-6">
 				<label className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-200">
 					Recipe Type (Optional)
 				</label>
@@ -194,7 +196,7 @@ export default function UploadButton() {
 					</p>
 				</div>
 			) : (
-				<div className="w-full max-w-md">
+				<div className="w-full">
 					<FileUpload
 						onChange={handleFileUpload}
 						className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-[#EE5F4C] dark:hover:border-[#EE5F4C] transition-colors duration-200"

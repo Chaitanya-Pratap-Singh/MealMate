@@ -53,6 +53,16 @@ FALLBACK_RECIPES = {
     }
 }
 
+# Add more common food items for better coverage with enhanced detection
+COMMON_FOODS = [
+    'apple', 'orange', 'banana', 'strawberry', 'grape', 'pear', 'pineapple', 'watermelon',
+    'bread', 'bun', 'cake', 'sandwich', 'pizza', 'hamburger', 'hotdog', 'donut',
+    'carrot', 'broccoli', 'cucumber', 'lettuce', 'tomato', 'potato', 'onion', 'bell pepper',
+    'chicken', 'beef', 'pork', 'fish', 'shrimp', 'egg',
+    'rice', 'pasta', 'noodle', 'soup', 'salad',
+    'coffee', 'tea', 'wine', 'juice', 'milk'
+]
+
 def setup_gemini():
     """Initialize the Gemini API with the provided key."""
     if not GEMINI_API_KEY or not GEMINI_AVAILABLE:
@@ -77,13 +87,27 @@ def generate_recipe(detection_results: List[Dict[str, Any]], recipe_type: Option
         Dict containing the generated recipe with title, ingredients, instructions, and notes.
     """
     try:
-        # Extract food items from detection results
-        food_items = [item['label'] for item in detection_results 
-                      if item['label'] in FALLBACK_RECIPES or 'food' in item['label'].lower()]
+        # Extract food items from detection results, handle both 'label' and 'confidence' fields
+        food_items = []
+        for item in detection_results:
+            # Get the label, could be in 'label' or 'class' field
+            label = item.get('label', item.get('class', ''))
+            
+            # Check if it's a food item (in our fallback recipes or food categories list)
+            if (label.lower() in FALLBACK_RECIPES or 
+                label.lower() in COMMON_FOODS or 
+                'food' in label.lower()):
+                food_items.append(label.lower())
         
-        # If no food items found
+        # If no food items found, return a clear message instead of a generic recipe
         if not food_items:
-            return None
+            return {
+                "title": "No Food Items Detected",
+                "ingredients": [],
+                "instructions": ["No recognizable food items were detected in the image."],
+                "serving_suggestions": "Please try again with a clearer image of food ingredients.",
+                "nutritional_notes": "Unable to generate recipe due to no food items being detected."
+            }
 
         # Try to use Gemini API if available
         gemini_setup = GEMINI_AVAILABLE and GEMINI_API_KEY and setup_gemini()
@@ -149,18 +173,21 @@ def generate_recipe(detection_results: List[Dict[str, Any]], recipe_type: Option
         if main_ingredient in FALLBACK_RECIPES:
             recipe = FALLBACK_RECIPES[main_ingredient]
         else:
-            # Generic recipe if no specific one is available
+            # Create a recipe that prominently features the detected ingredients
             recipe = {
                 "title": f"{'Breakfast' if recipe_type == 'breakfast' else 'Delicious'} {' & '.join(food_items)} Recipe",
-                "ingredients": [f"{item}" for item in food_items] + ["Salt and pepper to taste", "Olive oil", "Fresh herbs (optional)"],
+                "ingredients": [f"{food_items[i]} {'(chopped)' if i % 2 == 0 else '(whole)'}" for i in range(len(food_items))] + 
+                              ["Salt and pepper to taste", "Olive oil", "Fresh herbs (optional)"],
                 "instructions": [
                     f"Prepare the {', '.join(food_items)} by washing and cutting them as needed.",
-                    "Combine all ingredients in a bowl.",
+                    f"Heat a pan and add a small amount of olive oil.",
+                    f"Add the {food_items[0]} to the pan" + (f" followed by {', '.join(food_items[1:])}" if len(food_items) > 1 else "."),
+                    "Cook until tender, stirring occasionally.",
                     "Season with salt, pepper, and your favorite herbs.",
-                    "Enjoy your delicious creation!"
+                    f"Serve your {' & '.join(food_items)} dish hot and enjoy!"
                 ],
                 "serving_suggestions": f"Serve your {' & '.join(food_items)} creation with a side of your choice.",
-                "nutritional_notes": "This recipe contains nutrients from the detected food items."
+                "nutritional_notes": f"This recipe features {', '.join(food_items)}, which provide various nutrients and flavors."
             }
             
             # Modify recipe based on recipe type if specified
@@ -168,13 +195,31 @@ def generate_recipe(detection_results: List[Dict[str, Any]], recipe_type: Option
                 recipe["title"] = f"{recipe_type.capitalize()} {' & '.join(food_items)} Recipe"
                 
                 if recipe_type == "breakfast":
-                    recipe["instructions"].insert(1, "Heat a pan and cook your mixture until golden brown.")
+                    recipe["instructions"] = [
+                        f"Prepare the {', '.join(food_items)} by washing and cutting them as needed.",
+                        "Heat a pan and add a small amount of butter or oil.",
+                        f"Cook the {food_items[0]} until golden" + (f" along with {', '.join(food_items[1:])}" if len(food_items) > 1 else "."),
+                        "Season with a pinch of salt and pepper.",
+                        "Serve hot as a delicious breakfast item."
+                    ]
                 elif recipe_type == "dessert":
                     recipe["ingredients"].append("2 tablespoons of honey or sugar")
-                    recipe["instructions"].insert(1, "Add sweetener to taste.")
+                    recipe["instructions"] = [
+                        f"Prepare the {', '.join(food_items)} by washing and cutting them into bite-size pieces.",
+                        f"Place the {food_items[0]} in a bowl" + (f" with {', '.join(food_items[1:])}" if len(food_items) > 1 else "."),
+                        "Add honey or sugar and gently mix.",
+                        "Refrigerate for 30 minutes before serving.",
+                        "Enjoy this simple and refreshing dessert!"
+                    ]
                 elif recipe_type == "dinner":
                     recipe["ingredients"].append("Your choice of protein (chicken, fish, tofu)")
-                    recipe["instructions"].insert(1, "Cook your protein until done and combine with other ingredients.")
+                    recipe["instructions"] = [
+                        "Cook your protein of choice until done.",
+                        f"Prepare the {', '.join(food_items)} by washing and cutting them appropriately.",
+                        f"In a separate pan, sauté the {food_items[0]}" + (f" and {', '.join(food_items[1:])}" if len(food_items) > 1 else "."),
+                        "Combine everything and season with salt, pepper, and herbs.",
+                        "Serve hot as a complete dinner meal."
+                    ]
         
         # Return just the recipe directly
         return recipe

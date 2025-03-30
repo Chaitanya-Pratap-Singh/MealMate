@@ -33,6 +33,8 @@ export interface UploadResponse {
 	count?: number;
 	recipe?: RecipeData;
 	message?: string;
+	no_food_detected?: boolean;
+	manual_entry?: boolean;
 }
 
 export interface RecipeGenerationResponse {
@@ -123,6 +125,28 @@ export const getApiStatus = async (): Promise<{
 		return response.data;
 	} catch (error) {
 		throw new Error("Failed to fetch API status");
+	}
+};
+
+export const submitManualIngredients = async (
+	ingredients: string[],
+	recipeType?: string
+): Promise<UploadResponse> => {
+	try {
+		const response = await api.post("/api/manual-ingredients", {
+			ingredients,
+			recipe_type: recipeType || null,
+		});
+
+		return response.data;
+	} catch (error) {
+		if (axios.isAxiosError(error) && error.response) {
+			return error.response.data as UploadResponse;
+		}
+		return {
+			status: "error",
+			message: "Network error occurred",
+		};
 	}
 };
 
