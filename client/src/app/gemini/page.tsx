@@ -4,9 +4,9 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { DetectionResult, RecipeData, UploadResponse } from "@/lib/api";
+import { DetectionResult, RecipeData, UploadResponse } from "../../lib/api";
 import Image from "next/image";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import ErrorBoundary from "../../components/ErrorBoundary";
 import {
 	IconArrowLeft,
 	IconChefHat,
