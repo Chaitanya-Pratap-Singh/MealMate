@@ -1,6 +1,6 @@
 /** @format */
 
-import { AnimatedTestimonials } from "@/components/ui/animated-testimonial";
+import { AnimatedTestimonials } from "../components/ui/animated-testimonial";
 
 export function Features() {
 	const testimonials = [

@@ -1,7 +1,7 @@
 /** @format */
 
 "use client";
-import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
+import { TypewriterEffectSmooth } from "../components/ui/typewriter-effect";
 import { useRouter } from "next/navigation";
 
 export function Hero() {

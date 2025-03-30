@@ -2,12 +2,12 @@
 
 "use client";
 import React, { useState } from "react";
-import { FileUpload } from "@/components/ui/file-upload";
+import { FileUpload } from "../components/ui/file-upload";
 import { useRouter } from "next/navigation";
-import { uploadImage } from "@/lib/api";
+import { uploadImage } from "../lib/api";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { DetectionResult } from "@/lib/api";
+import { DetectionResult } from "../lib/api";
 
 // Define recipe type options
 export type RecipeType =
