@@ -1,5 +1,5 @@
 import React from 'react'
-import UploadButton from "@/components/UploadButton"
+import UploadButton from "../../components/UploadButton"
 
 const Upload = () => {
   return (
