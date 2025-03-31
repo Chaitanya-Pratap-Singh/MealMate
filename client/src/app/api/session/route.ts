@@ -11,15 +11,19 @@ let sessionStore: Record<string, any> = {};
 // Session expiration time (15 minutes)
 const SESSION_EXPIRY = 15 * 60 * 1000;
 
-// Clean up expired sessions periodically
-setInterval(() => {
-	const now = Date.now();
-	Object.entries(sessionStore).forEach(([id, session]) => {
-		if (session.expiresAt < now) {
-			delete sessionStore[id];
-		}
-	});
-}, 5 * 60 * 1000); // Clean every 5 minutes
+// IMPORTANT: Only initialize timer on the server side
+// This avoids hydration issues caused by different execution environments
+if (typeof window === "undefined") {
+	// Clean up expired sessions periodically
+	setInterval(() => {
+		const now = Date.now();
+		Object.entries(sessionStore).forEach(([id, session]) => {
+			if (session.expiresAt < now) {
+				delete sessionStore[id];
+			}
+		});
+	}, 5 * 60 * 1000); // Clean every 5 minutes
+}
 
 export async function POST(req: NextRequest) {
 	try {

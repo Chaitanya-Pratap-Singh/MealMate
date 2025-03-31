@@ -1,7 +1,7 @@
 /** @format */
 
 import { cn } from "../../lib/utils";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { IconUpload } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
@@ -36,6 +36,12 @@ export const FileUpload = ({
 }) => {
 	const [files, setFiles] = useState<File[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [isMounted, setIsMounted] = useState(false);
+
+	// Mark when component has mounted on client
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	const handleFileChange = (newFiles: File[]) => {
 		setFiles((prevFiles) => [...prevFiles, ...newFiles]);
@@ -46,6 +52,7 @@ export const FileUpload = ({
 		fileInputRef.current?.click();
 	};
 
+	// Only initialize dropzone on client side
 	const { getRootProps, isDragActive } = useDropzone({
 		multiple: false,
 		noClick: true,
@@ -53,7 +60,31 @@ export const FileUpload = ({
 		onDropRejected: (error) => {
 			console.log(error);
 		},
+		disabled: !isMounted, // Disable until client-side mounted
 	});
+
+	// Show a simple placeholder during server rendering
+	if (!isMounted) {
+		return (
+			<div className={cn("w-full", className)}>
+				<div
+					className="p-10 block rounded-lg w-full relative overflow-hidden"
+					style={{ backgroundColor: "#0e2825" }}>
+					<div className="flex flex-col items-center justify-center">
+						<p className="relative z-20 font-sans font-bold text-neutral-200 text-base">
+							Upload file
+						</p>
+						<p className="relative z-20 font-sans font-normal text-neutral-400 text-base mt-2">
+							Drag or drop your files here or click to upload
+						</p>
+						<div className="relative w-full mt-10 max-w-xl mx-auto">
+							<div className="relative z-40 bg-white dark:bg-[#EE5F4C] flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-md shadow-[0px_10px_50px_rgba(0,0,0,0.1)]"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className={cn("w-full", className)} {...getRootProps()}>

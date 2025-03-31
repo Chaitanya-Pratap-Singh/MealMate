@@ -21,8 +21,18 @@ export default function GeminiPage() {
 	const [activeTab, setActiveTab] = useState<"detections" | "recipe">("recipe");
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [isClient, setIsClient] = useState(false);
+
+	// Add this effect to handle client-side mounting
+	useEffect(() => {
+		// This marks that we're on the client side
+		setIsClient(true);
+	}, []);
 
 	useEffect(() => {
+		// Skip fetching data if we're not on the client yet
+		if (!isClient) return;
+
 		// Get the results from the session API instead of URL params
 		const fetchSessionData = async () => {
 			try {
@@ -74,7 +84,14 @@ export default function GeminiPage() {
 		};
 
 		fetchSessionData();
-	}, []);
+	}, [isClient]); // Only run when isClient changes to true
+
+	// Show loading placeholder until client-side code takes over
+	if (!isClient) {
+		return (
+			<div className="min-h-screen flex items-center justify-center"></div>
+		);
+	}
 
 	if (isLoading) {
 		return (

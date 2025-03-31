@@ -1,7 +1,7 @@
 /** @format */
 
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FileUpload } from "../components/ui/file-upload";
 import { useRouter } from "next/navigation";
 import { uploadImage } from "../lib/api";
@@ -34,7 +34,13 @@ export default function UploadButton() {
 	const [uploadStage, setUploadStage] = useState<
 		"idle" | "uploading" | "processing"
 	>("idle");
+	const [isClient, setIsClient] = useState(false);
 	const router = useRouter();
+
+	// Add this effect to mark client-side rendering
+	useEffect(() => {
+		setIsClient(true);
+	}, []);
 
 	const handleFileUpload = async (files: File[]) => {
 		if (files.length === 0) return;
@@ -162,6 +168,11 @@ export default function UploadButton() {
 			setUploadStage("idle");
 		}
 	};
+
+	// Only render full component if on client side
+	if (!isClient) {
+		return <div className="w-full h-[300px]"></div>;
+	}
 
 	return (
 		<div className="w-full">
