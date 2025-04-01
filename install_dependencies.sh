@@ -18,24 +18,6 @@ print_msg() {
 
 print_msg "Installing project dependencies..." "info"
 
-# Create Flask server .env file if it doesn't exist
-if [ ! -f "flask-server/.env" ]; then
-  print_msg "Creating flask-server/.env file..." "info"
-  cat > flask-server/.env << EOF
-GEMINI_API_KEY="your-gemini-api-key"
-SECRET_KEY="dev-secret-key-change-in-production"
-FLASK_ENV=development
-FLASK_APP=app.py
-CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-
-# Cloudinary settings
-CLOUDINARY_CLOUD_NAME="your-cloud-name"
-CLOUDINARY_API_KEY="your-api-key"
-CLOUDINARY_API_SECRET="your-api-secret"
-EOF
-  print_msg "Flask .env file created" "success"
-fi
-
 # Install backend dependencies
 print_msg "Setting up Flask backend..." "info"
 cd flask-server
@@ -71,10 +53,10 @@ cd ..
 
 print_msg "Dependencies installation completed!" "success"
 
-# Reminder to update Cloudinary credentials
-print_msg "\nIMPORTANT: Remember to update your Cloudinary credentials in:" "info"
+# Reminder about environment files
+print_msg "\nIMPORTANT: Make sure you have set up your environment files:" "info"
 print_msg "- flask-server/.env" "info"
 print_msg "- client/.env.local" "info"
-print_msg "\nVisit https://cloudinary.com to get your Cloud Name, API Key, and API Secret." "info"
+print_msg "\nSee the README.md for required environment variables." "info"
 
 print_msg "\nTo run the project, use: ./run.sh" "success"
