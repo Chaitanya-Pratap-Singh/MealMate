@@ -174,11 +174,38 @@ MealMate/
 │   ├── app.py            # Main Flask application
 │   ├── models/           # AI models directory
 │   ├── uploads/          # Temporary image storage
-│   └── requirements.txt  # Python dependencies
+│   ├── static/           # Static files
+│   ├── venv/             # Python virtual environment
+│   ├── __pycache__/      # Python cache files
+│   ├── requirements.txt  # Python dependencies
+│   ├── .env             # Environment variables
+│   ├── .gitignore       # Git ignore rules
+│   ├── wsgi.py          # WSGI entry point
+│   ├── Procfile         # Heroku deployment config
+│   ├── download_models.py    # Model download script
+│   ├── test_detection.py     # Test detection script
+│   ├── enhanced_detection.py # Enhanced detection module
+│   ├── simplified_recipe.py  # Simplified recipe generation
+│   ├── batch_object_detection.py    # Batch processing
+│   ├── cpu_mmdet_object_detection.py # CPU detection
+│   ├── mmdet_object_detection.py     # MMDetection wrapper
+│   ├── object_detection.py           # Core detection
+│   ├── recipe_generator.py           # Recipe generation
+│   └── simplified_detection.py       # Simplified detection
 ├── client/               # Frontend application
 │   ├── src/             # Source code
 │   ├── public/          # Static assets
-│   └── package.json     # Node.js dependencies
+│   ├── .next/           # Next.js build output
+│   ├── node_modules/    # Node.js dependencies
+│   ├── package.json     # Node.js dependencies
+│   ├── package-lock.json # Locked dependencies
+│   ├── tsconfig.json    # TypeScript config
+│   ├── next-env.d.ts    # Next.js type definitions
+│   ├── postcss.config.mjs # PostCSS config
+│   ├── next.config.js   # Next.js config
+│   ├── next.config.ts   # TypeScript Next.js config
+│   ├── .gitignore      # Git ignore rules
+│   └── .env            # Environment variables
 ├── install_dependencies.bat  # Windows setup script
 ├── install_dependencies.sh   # Linux/macOS setup script
 ├── run.bat              # Windows run script
