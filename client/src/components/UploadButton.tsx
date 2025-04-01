@@ -78,6 +78,16 @@ export default function UploadButton() {
 				body: formData,
 			});
 
+			if (!uploadResponse.ok) {
+				const errorData = await uploadResponse.json().catch(() => ({}));
+				console.error("Upload failed with status:", uploadResponse.status);
+				console.error("Error response:", errorData);
+				throw new Error(
+					errorData.message ||
+						`Upload failed with status ${uploadResponse.status}`
+				);
+			}
+
 			const response = await uploadResponse.json();
 			console.log("Full response from server:", response);
 
@@ -133,13 +143,17 @@ export default function UploadButton() {
 
 				// Store the results in session API instead of URL parameters
 				try {
-					await fetch("/api/session", {
+					const sessionResponse = await fetch("/api/session", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
 						},
 						body: JSON.stringify(formattedResponse),
 					});
+
+					if (!sessionResponse.ok) {
+						throw new Error("Failed to store session data");
+					}
 
 					// Redirect to the Gemini page without URL parameters
 					router.push("/gemini");
@@ -148,20 +162,23 @@ export default function UploadButton() {
 					toast.error("Failed to process results. Please try again.");
 				}
 			} else {
-				console.error(
-					"Error:",
-					response.message || response.flask_response?.message
-				);
-				toast.error(
+				const errorMessage =
 					response.message ||
-						response.flask_response?.message ||
-						"Failed to process the image. Please try again."
-				);
+					response.flask_response?.message ||
+					"Failed to process the image";
+				console.error("Error response:", {
+					message: errorMessage,
+					status: response.status,
+					flask_response: response.flask_response,
+				});
+				toast.error(errorMessage);
 			}
 		} catch (error) {
 			console.error("Error uploading file:", error);
 			toast.error(
-				"An error occurred while uploading the file. Please try again later."
+				error instanceof Error
+					? error.message
+					: "An error occurred while uploading the file. Please try again later."
 			);
 		} finally {
 			setLoading(false);

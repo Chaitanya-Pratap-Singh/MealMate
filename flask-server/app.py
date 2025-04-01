@@ -24,33 +24,27 @@ cloudinary.config(
 
 # Import object detection functionality
 try:
-    # Try to use the enhanced detection first for better accuracy
-    from enhanced_detection import detect_objects
+    # First try to import the simplified detection for Vercel
+    from simplified_detection import detect_objects
     DETECTION_FN = detect_objects
-    IMPLEMENTATION = "Enhanced Food Detection"
+    IMPLEMENTATION = "Simplified (Vercel)"
 except ImportError:
     try:
-        # Fall back to simplified detection for Vercel
-        from simplified_detection import detect_objects
-        DETECTION_FN = detect_objects
-        IMPLEMENTATION = "Simplified (Vercel)"
+        from object_detection import detect_objects as torch_detect
+        DETECTION_FN = torch_detect
+        IMPLEMENTATION = "PyTorch"
     except ImportError:
         try:
-            from object_detection import detect_objects as torch_detect
-            DETECTION_FN = torch_detect
-            IMPLEMENTATION = "PyTorch"
+            from cpu_mmdet_object_detection import detect_objects as mmdet_detect
+            DETECTION_FN = lambda image_path: mmdet_detect(image_path, device='cpu')
+            IMPLEMENTATION = "MMDetection (CPU)"
         except ImportError:
-            try:
-                from cpu_mmdet_object_detection import detect_objects as mmdet_detect
-                DETECTION_FN = lambda image_path: mmdet_detect(image_path, device='cpu')
-                IMPLEMENTATION = "MMDetection (CPU)"
-            except ImportError:
-                print("WARNING: No object detection implementation found. Using fallback detection.")
-                # Define a fallback detection function
-                def fallback_detect(image_path):
-                    return [{"label": "food", "confidence": 0.95, "bbox": [10, 10, 100, 100]}]
-                DETECTION_FN = fallback_detect
-                IMPLEMENTATION = "Fallback (No ML)"
+            print("WARNING: No object detection implementation found. Using fallback detection.")
+            # Define a fallback detection function
+            def fallback_detect(image_path):
+                return [{"label": "food", "confidence": 0.95, "bbox": [10, 10, 100, 100]}]
+            DETECTION_FN = fallback_detect
+            IMPLEMENTATION = "Fallback (No ML)"
 
 # Import recipe generation functionality
 try:
@@ -88,33 +82,6 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 
 # Create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-def normalize_detection_results(results):
-    """
-    Normalize detection results to ensure consistent field names 
-    regardless of which detection method is used.
-    
-    Args:
-        results (list): Detection results from any detection method
-        
-    Returns:
-        list: Normalized detection results
-    """
-    normalized = []
-    for item in results:
-        # Create a new dict with standardized field names
-        normalized_item = {
-            # Use 'label' as the standard field name for the detected object
-            'label': item.get('label', item.get('class', item.get('name', 'unknown'))),
-            
-            # Use 'confidence' as the standard field name for the detection score
-            'confidence': item.get('confidence', item.get('score', 0.0)),
-            
-            # Use 'bbox' as the standard field name for bounding box
-            'bbox': item.get('bbox', item.get('box', [0, 0, 0, 0]))
-        }
-        normalized.append(normalized_item)
-    return normalized
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -161,8 +128,7 @@ def process_image():
     try:
         data = request.json
         image_url = data.get('image_url')
-        # Force generate_recipe to True to always generate a recipe
-        generate_recipe = True
+        generate_recipe = data.get('generate_recipe', False)
         recipe_type = data.get('recipe_type')
         
         if not image_url:
@@ -182,20 +148,12 @@ def process_image():
         # Run object detection
         detection_results = DETECTION_FN(filepath)
         
-        # Normalize results to ensure consistent field names
-        detection_results = normalize_detection_results(detection_results)
-        
-        # Generate recipe if available, always generating a recipe for any detected items
+        # Generate recipe if available and requested
         recipe_data = None
-        no_food_detected = False
-        if RECIPE_GENERATION_AVAILABLE:
+        if RECIPE_GENERATION_AVAILABLE and generate_recipe:
             print(f"Generating recipe with type: {recipe_type}")
             recipe_data = generate_recipe_fn(detection_results, recipe_type)
             print(f"Recipe generated: {recipe_data is not None}")
-            
-            # Check if the recipe indicates no food items were detected
-            if recipe_data and recipe_data.get('title') == "No Food Items Detected":
-                no_food_detected = True
         
         # Extract just the filename from the path
         filename = os.path.basename(filepath)
@@ -207,8 +165,7 @@ def process_image():
             'image_url': image_url,  # Return the original Cloudinary URL
             'detections': detection_results,
             'count': len(detection_results),
-            'recipe': recipe_data,  # This is now directly the recipe object
-            'no_food_detected': no_food_detected
+            'recipe': recipe_data  # This is now directly the recipe object
         })
         
     except Exception as e:
@@ -244,23 +201,15 @@ def upload_file():
             # Run object detection
             detection_results = DETECTION_FN(filepath)
             
-            # Normalize results to ensure consistent field names
-            detection_results = normalize_detection_results(detection_results)
-            
             # Get recipe type if specified
             recipe_type = request.form.get('recipe_type', None)
             
-            # Always generate recipe if available, regardless of request parameter or detection count
+            # Generate recipe if available and requested
             recipe_data = None
-            no_food_detected = False
-            if RECIPE_GENERATION_AVAILABLE:
+            if RECIPE_GENERATION_AVAILABLE and request.form.get('generate_recipe') == 'true':
                 print(f"Generating recipe with type: {recipe_type}")
                 recipe_data = generate_recipe_fn(detection_results, recipe_type)
                 print(f"Recipe generated: {recipe_data is not None}")
-                
-                # Check if the recipe indicates no food items were detected
-                if recipe_data and recipe_data.get('title') == "No Food Items Detected":
-                    no_food_detected = True
             
             # Return results as JSON
             return jsonify({
@@ -269,8 +218,7 @@ def upload_file():
                 'image_url': f"/api/uploads/{unique_filename}",
                 'detections': detection_results,
                 'count': len(detection_results),
-                'recipe': recipe_data,  # This is now directly the recipe object
-                'no_food_detected': no_food_detected
+                'recipe': recipe_data  # This is now directly the recipe object
             })
         except Exception as e:
             print(f"Detection error: {str(e)}")
@@ -315,63 +263,6 @@ def generate_recipe_api():
         return jsonify({
             'status': 'error',
             'message': f"Error generating recipe: {str(e)}"
-        }), 500
-
-@app.route('/api/manual-ingredients', methods=['POST'])
-def manual_ingredients():
-    """
-    Handle manually entered ingredients and generate a recipe.
-    
-    Expected request format:
-    {
-        "ingredients": ["apple", "banana", "flour"],
-        "recipe_type": "breakfast"  // optional
-    }
-    """
-    if not RECIPE_GENERATION_AVAILABLE:
-        return jsonify({
-            'status': 'error',
-            'message': 'Recipe generation is not available'
-        }), 501
-    
-    try:
-        data = request.json
-        ingredients = data.get('ingredients', [])
-        recipe_type = data.get('recipe_type')
-        
-        if not ingredients:
-            return jsonify({
-                'status': 'error',
-                'message': 'No ingredients provided'
-            }), 400
-        
-        # Convert ingredients to detection-like format for the recipe generator
-        detection_results = [
-            {
-                'label': ingredient,
-                'confidence': 0.95,  # High confidence for manual entries
-                'bbox': [10, 10, 100, 100]  # Dummy bounding box
-            }
-            for ingredient in ingredients
-        ]
-        
-        # Generate recipe
-        recipe_data = generate_recipe_fn(detection_results, recipe_type)
-        
-        # Return recipe data along with formatted detection results
-        return jsonify({
-            'status': 'success',
-            'detections': detection_results,
-            'count': len(detection_results),
-            'recipe': recipe_data,
-            'manual_entry': True,
-            'no_food_detected': False
-        })
-    except Exception as e:
-        print(f"Manual ingredient processing error: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': f"Error processing ingredients: {str(e)}"
         }), 500
 
 # Error handlers
