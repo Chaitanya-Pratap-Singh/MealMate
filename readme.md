@@ -20,6 +20,7 @@ detection and recipe generation, and a Next.js frontend client.
 - Node.js 16+ (for Next.js client)
 - Git
 - Cloudinary account (for image storage)
+- Google Gemini API key
 
 ## Environment Setup
 
@@ -28,22 +29,30 @@ Before running the application, you need to set up your environment files:
 1. Create `flask-server/.env` with the following variables:
 
    ```
-   GEMINI_API_KEY="your-gemini-api-key"
-   SECRET_KEY="dev-secret-key-change-in-production"
+   SECRET_KEY="your-secret-key"
    FLASK_ENV=development
    FLASK_APP=app.py
    CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-
-   # Cloudinary settings
+   FLASK_SERVER_URL=http://127.0.0.1:5000
+   GEMINI_API_KEY="your-gemini-api-key"
    CLOUDINARY_CLOUD_NAME="your-cloud-name"
    CLOUDINARY_API_KEY="your-api-key"
    CLOUDINARY_API_SECRET="your-api-secret"
    ```
 
-2. Create `client/.env.local` with the following variables:
+2. Create `client/.env` with the following variables:
    ```
-   NEXT_PUBLIC_API_URL=http://localhost:5000
+   FLASK_SERVER_URL=http://127.0.0.1:5000
+   NEXT_PUBLIC_FLASK_SERVER_URL=http://127.0.0.1:5000
+   NEXT_PUBLIC_APP_NAME=MealMate
+   NEXT_PUBLIC_APP_DESCRIPTION="AI-powered recipe generator from your ingredients"
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-api-key"
+   CLOUDINARY_CLOUD_NAME="your-cloud-name"
+   CLOUDINARY_API_KEY="your-api-key"
+   CLOUDINARY_API_SECRET="your-api-secret"
    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"
+   NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="mealmate_uploads"
    ```
 
 ## Getting Started
@@ -150,8 +159,7 @@ If you prefer to set up each component separately:
    npm install
    ```
 
-3. Create `.env.local` file with your configuration (see Environment Setup
-   section)
+3. Create `.env` file with your configuration (see Environment Setup section)
 
 4. Run the development server:
    ```bash
