@@ -209,7 +209,9 @@ MealMate/
 ├── install_dependencies.bat  # Windows setup script
 ├── install_dependencies.sh   # Linux/macOS setup script
 ├── run.bat              # Windows run script
-└── run.sh               # Linux/macOS run script
+├── run.sh               # Linux/macOS run script
+├── README.md           # Project documentation
+└── LICENSE             # MIT License
 ```
 
 ## Development
@@ -261,5 +263,21 @@ MealMate/
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for
-details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
+for details.
+
+The MIT License is a permissive license that is short and to the point. It lets
+people do anything they want with your code as long as they provide attribution
+back to you and don't hold you liable.
+
+Key points of the MIT License:
+
+- Allows commercial use
+- Allows modifications
+- Allows distribution
+- Allows private use
+- Includes a liability shield
+- Includes a warranty shield
+
+The only requirement is that the license and copyright notice must be included
+in all copies or substantial portions of the software.
