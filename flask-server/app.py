@@ -265,6 +265,84 @@ def generate_recipe_api():
             'message': f"Error generating recipe: {str(e)}"
         }), 500
 
+@app.route('/api/manual-ingredients', methods=['POST'])
+def manual_ingredients():
+    if not RECIPE_GENERATION_AVAILABLE:
+        return jsonify({
+            'status': 'error',
+            'message': 'Recipe generation is not available'
+        }), 501
+    
+    try:
+        data = request.json
+        ingredients = data.get('ingredients', [])
+        recipe_type = data.get('recipe_type')
+        
+        if not ingredients:
+            return jsonify({
+                'status': 'error',
+                'message': 'No ingredients provided'
+            }), 400
+        
+        # Clean up ingredients - remove empty values and trim whitespace
+        ingredients = [ing.strip() for ing in ingredients if ing.strip()]
+        
+        # Create fake detection results with the ingredients
+        # But make sure they have high confidence to ensure they'll be used
+        detection_results = []
+        for ingredient in ingredients:
+            detection_results.append({
+                "label": ingredient.lower(),  # lowercase for consistency
+                "confidence": 1.0,            # maximum confidence to ensure inclusion
+                "bbox": [0, 0, 100, 100]      # Better placeholder bounding box
+            })
+        
+        # Print debug info 
+        print(f"Manual ingredients: {ingredients}")
+        print(f"Recipe type: {recipe_type}")
+        
+        # Generate the recipe
+        recipe_data = generate_recipe_fn(detection_results, recipe_type)
+        
+        # Verify if all ingredients are used in the recipe
+        if recipe_data:
+            # Get all ingredients from the recipe as lowercase for comparison
+            recipe_ingredients_text = ' '.join(recipe_data.get('ingredients', [])).lower()
+            
+            # Check if any ingredient is missing from the recipe
+            missing_ingredients = []
+            for ingredient in ingredients:
+                # Consider ingredient present if its name appears anywhere in the recipe ingredients
+                if ingredient.lower() not in recipe_ingredients_text:
+                    missing_ingredients.append(ingredient)
+            
+            # If there are missing ingredients, add them to the recipe
+            if missing_ingredients:
+                print(f"Adding missing ingredients to recipe: {missing_ingredients}")
+                for missing in missing_ingredients:
+                    recipe_data['ingredients'].append(f"{missing} (to taste)")
+                
+                # Update the instructions to include the missing ingredients
+                if len(missing_ingredients) > 0:
+                    recipe_data['instructions'].append(
+                        f"Don't forget to include {', '.join(missing_ingredients)} to enhance the flavor of your dish."
+                    )
+        
+        # Return a response that matches the structure expected by the frontend
+        return jsonify({
+            'status': 'success',
+            'detections': detection_results,
+            'count': len(detection_results),
+            'recipe': recipe_data,
+            'manual_entry': True
+        })
+    except Exception as e:
+        print(f"Manual ingredients error: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"Error generating recipe: {str(e)}"
+        }), 500
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
